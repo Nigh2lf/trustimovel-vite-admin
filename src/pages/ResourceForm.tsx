@@ -106,6 +106,7 @@ const ResourceForm = () => {
 
   const { create, update, isSaving } = useCatalogMutations(resource?.endpoint ?? "", {
     label: resource?.singular ?? "Registro",
+    feminine: resource?.feminine,
     onSaved: () => navigate(`/${slug}`),
   });
 

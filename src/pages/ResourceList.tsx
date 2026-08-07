@@ -70,6 +70,7 @@ const ResourceList = () => {
 
   const { remove } = useCatalogMutations(resource?.endpoint ?? "", {
     label: resource?.singular ?? "Registro",
+    feminine: resource?.feminine,
     onRemoved: () => setItemToDelete(null),
   });
 
