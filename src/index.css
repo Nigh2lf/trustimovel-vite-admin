@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+/* Paleta da marca Elo, tirada direto da logo:
+     laranja  #FE5902  hsl(21 99% 50%)
+     marinho  #001544  hsl(221 100% 13%)
+     coral    #FE4E4C  hsl(1 99% 65%)
+   O laranja cheio da logo rende só 3.16:1 com texto branco, o que reprova no
+   WCAG AA para texto normal. Por isso --primary usa um laranja um pouco mais
+   fundo (4.86:1) e o tom exato da logo fica em --primary-glow, para hover,
+   gradientes e superfícies grandes, onde 3:1 basta. */
+
+@layer base {
+  :root {
+    --background: 24 30% 98%;
+    --foreground: 221 60% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 221 60% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 60% 12%;
+
+    /* Laranja da marca - cor principal de ação */
+    --primary: 21 92% 40%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 21 99% 50%;
+
+    /* Marinho da marca */
+    --secondary: 221 72% 20%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Neutros levemente quentes, para conversar com o laranja */
+    --muted: 24 20% 95%;
+    --muted-foreground: 221 20% 40%;
+
+    /* Neutro de realce: é o que o shadcn usa em hover/foco de menus, seleção de
+       calendário e botões ghost. Vermelho aqui pintaria de erro meia interface. */
+    --accent: 24 25% 93%;
+    --accent-foreground: 221 60% 12%;
+
+    /* Tons decorativos dos cards e gráficos. O coral da logo não entra aqui:
+       vermelho e variações ficam reservados a erro (--destructive). */
+    --gold: 38 95% 32%;
+    --gold-foreground: 0 0% 100%;
+    --purple: 213 55% 40%;
+    --purple-foreground: 0 0% 100%;
+
+    /* Único vermelho do sistema: erro, exclusão e falha. */
+    --destructive: 356 75% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 24 20% 89%;
+    --input: 24 20% 89%;
+    --ring: 21 92% 40%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar - marinho da logo */
+    --sidebar-background: 221 72% 12%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 21 99% 55%;
+    --sidebar-primary-foreground: 221 72% 12%;
+    --sidebar-accent: 221 55% 19%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 221 50% 20%;
+    --sidebar-ring: 21 99% 55%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(21 99% 50%), hsl(38 95% 45%));
+    --gradient-cosmic: linear-gradient(180deg, hsl(221 72% 14%), hsl(213 55% 28%));
+
+    /* Shadows */
+    --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+
+  .dark {
+    --background: 221 60% 10%;
+    --foreground: 210 40% 98%;
+
+    --card: 221 50% 15%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 221 50% 15%;
+    --popover-foreground: 210 40% 98%;
+
+    /* No escuro o laranja pode subir: fica mais perto do tom da logo */
+    --primary: 21 96% 55%;
+    --primary-foreground: 221 72% 10%;
+    --primary-glow: 21 99% 62%;
+
+    --secondary: 213 55% 40%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 221 50% 15%;
+    --muted-foreground: 215 20% 68%;
+
+    --accent: 221 45% 22%;
+    --accent-foreground: 210 40% 98%;
+
+    --gold: 38 90% 55%;
+    --gold-foreground: 221 72% 10%;
+    --purple: 213 55% 48%;
+    --purple-foreground: 0 0% 100%;
+
+    --destructive: 356 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 221 50% 20%;
+    --input: 221 50% 20%;
+    --ring: 21 96% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
