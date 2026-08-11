@@ -33,6 +33,8 @@ export interface ResourceField {
   filterParam?: string;
   /** Campos que só fazem sentido no cadastro, como a senha inicial. */
   onlyOnCreate?: boolean;
+  /** Número que pode ficar em branco: o payload envia null em vez de 0. */
+  nullable?: boolean;
   defaultValue?: string | boolean;
 }
 
@@ -82,6 +84,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
       { header: "Nome", field: "name" },
       { header: "E-mail", field: "email" },
       { header: "Telefone", field: "phone" },
+      { header: "Plano", field: "plan_name" },
       { header: "Ativa", field: "is_active" },
     ],
     fields: [
@@ -90,11 +93,49 @@ export const ADMIN_RESOURCES: AdminResource[] = [
       { name: "phone", label: "Telefone", type: "text", maxLength: 20 },
       { name: "site", label: "Site", type: "text", maxLength: 200 },
       {
+        name: "plan",
+        label: "Plano",
+        type: "relation",
+        endpoint: "/admin-web/plans/",
+        labelField: "plan_name",
+        help: "Plano contratado, com os limites de imóveis e fotos da imobiliária.",
+      },
+      {
         name: "is_active",
         label: "Ativa",
         type: "switch",
         defaultValue: true,
         help: "Uma imobiliária inativa continua cadastrada, mas não deve operar no sistema.",
+      },
+    ],
+  },
+  {
+    slug: "planos",
+    endpoint: "/admin-web/plans/",
+    title: "Planos",
+    description: "Limites de imóveis e fotos por imobiliária",
+    singular: "Plano",
+    group: "Contas",
+    columns: [
+      { header: "Nome", field: "name" },
+      { header: "Limite de imóveis", field: "property_limit" },
+      { header: "Limite de fotos", field: "photo_limit" },
+    ],
+    fields: [
+      { name: "name", label: "Nome", type: "text", required: true, maxLength: 100 },
+      {
+        name: "property_limit",
+        label: "Limite de imóveis",
+        type: "number",
+        nullable: true,
+        help: "Deixe em branco para não limitar a quantidade de imóveis.",
+      },
+      {
+        name: "photo_limit",
+        label: "Limite de fotos",
+        type: "number",
+        nullable: true,
+        help: "Deixe em branco para não limitar a quantidade de fotos.",
       },
     ],
   },

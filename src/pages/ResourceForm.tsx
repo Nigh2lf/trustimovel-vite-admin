@@ -47,7 +47,8 @@ const buildPayload = (resource: AdminResource, form: FormState, isEditMode: bool
     }
 
     if (field.type === "number") {
-      payload[field.name] = Number(value) || 0;
+      const text = String(value ?? "").trim();
+      payload[field.name] = field.nullable && !text ? null : Number(text) || 0;
       continue;
     }
 
