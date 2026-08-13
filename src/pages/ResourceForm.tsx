@@ -153,16 +153,20 @@ const ResourceForm = () => {
     const value = form[field.name];
 
     if (field.type === "switch") {
+      // Mesma altura do Input, para o campo alinhar com os vizinhos da grade.
       return (
-        <div className="flex items-center justify-between rounded-lg border px-3 py-2">
-          <Label htmlFor={`field-${field.name}`} className="cursor-pointer">
-            {field.label}
-          </Label>
+        <div className="flex h-10 items-center gap-3 rounded-md border border-input px-3">
           <Switch
             id={`field-${field.name}`}
             checked={Boolean(value)}
             onCheckedChange={(checked) => setField(field.name, checked)}
           />
+          <Label
+            htmlFor={`field-${field.name}`}
+            className="cursor-pointer font-normal text-muted-foreground"
+          >
+            {value ? "Sim" : "Não"}
+          </Label>
         </div>
       );
     }
@@ -218,7 +222,8 @@ const ResourceForm = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    // Largura limitada: em tela cheia os campos ficariam com quase mil pixels cada.
+    <div className="p-6 space-y-6 max-w-4xl">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => navigate(`/${resource.slug}`)}>
           <ArrowLeft className="h-4 w-4" />
@@ -247,17 +252,15 @@ const ResourceForm = () => {
                 Carregando...
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 {resource.fields.filter((field) => isVisible(field, isEditMode)).map((field) => (
                   <div key={field.name} className="space-y-2">
-                    {field.type !== "switch" && (
-                      <Label htmlFor={`field-${field.name}`}>
-                        {field.label}
-                        {field.required && !(isEditMode && field.type === "password") && (
-                          <span className="text-destructive"> *</span>
-                        )}
-                      </Label>
-                    )}
+                    <Label htmlFor={`field-${field.name}`}>
+                      {field.label}
+                      {field.required && !(isEditMode && field.type === "password") && (
+                        <span className="text-destructive"> *</span>
+                      )}
+                    </Label>
                     {renderField(field)}
                     {field.help && (
                       <p className="text-xs text-muted-foreground">{field.help}</p>

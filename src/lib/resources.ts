@@ -229,11 +229,26 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     group: "Exportação",
     columns: [
       { header: "Nome", field: "name" },
+      { header: "Identificador", field: "slug" },
       { header: "Ativo", field: "is_active" },
     ],
     fields: [
       { name: "name", label: "Nome", type: "text", required: true, maxLength: 120 },
-      { name: "is_active", label: "Ativo", type: "switch", defaultValue: true },
+      {
+        name: "slug",
+        label: "Identificador",
+        type: "text",
+        maxLength: 120,
+        placeholder: "zap-imoveis",
+        help: "Identifica o portal na URL de exportação. Em branco, é gerado a partir do nome.",
+      },
+      {
+        name: "is_active",
+        label: "Ativo",
+        type: "switch",
+        defaultValue: true,
+        help: "Um portal inativo não aparece para as imobiliárias ativarem.",
+      },
     ],
   },
   {
