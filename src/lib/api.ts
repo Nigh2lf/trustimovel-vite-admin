@@ -23,6 +23,17 @@ const extractErrorMessage = (payload: unknown): string | undefined => {
   return undefined;
 };
 
+/**
+ * 403 é permissão, não sessão: o usuário continua logado e só não alcança aquele recurso.
+ * Ter um tipo próprio deixa a tela distinguir "sem acesso" de um erro qualquer.
+ */
+export class ForbiddenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}
+
 class ApiClient {
   private baseURL: string;
 
@@ -92,6 +103,11 @@ class ApiClient {
         extractErrorMessage(error.detail) ||
         extractErrorMessage(error.non_field_errors) ||
         `HTTP ${response.status}`;
+
+      // Sem permissão: mantém a sessão de pé e deixa a tela decidir o que mostrar.
+      if (response.status === 403) {
+        throw new ForbiddenError(errorMessage);
+      }
 
       throw new Error(errorMessage);
     }
