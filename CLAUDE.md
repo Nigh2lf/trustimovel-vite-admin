@@ -120,10 +120,14 @@ evento `auth:unauthorized` → `SessionExpiredListener` → `/login`.
 ```
 useParams() dá o slug da URL
   → findResource(slug)                  acha o recurso em ADMIN_RESOURCES
-  → useCatalogList(endpoint, {search, page})
-       GET endpoint?search=&page=       resposta paginada do DRF
+  → useCatalogList(endpoint, {search, ordering, page})
+       GET endpoint?search=&ordering=&page=   resposta paginada do DRF
   → renderiza uma coluna por item de `columns`
 ```
+
+A coluna com `sortKey` ordena pelo cabeçalho, no servidor. Em relação o `sortKey` difere do
+`field` mostrado (`plan_name` sai de `plan__name`), e ele precisa estar no `ordering_fields`
+do ViewSet correspondente em `admin_web/views.py` — fora de lá o backend ignora o parâmetro.
 
 O `renderValue` traduz o valor cru para exibição: booleano vira badge Sim/Não, campo com `options`
 vira o rótulo correspondente (`PROPERTY` → *Imóvel*), vazio vira `—`.

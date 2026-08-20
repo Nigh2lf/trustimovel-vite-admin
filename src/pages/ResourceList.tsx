@@ -26,6 +26,8 @@ import {
 import { Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { DEFAULT_PAGE_SIZE, useCatalogList, useCatalogMutations } from "@/lib/catalog";
 import { ResourceColumn, findResource } from "@/lib/resources";
+import { SortableTableHead } from "@/components/SortableTableHead";
+import { useTableSort } from "@/hooks/use-table-sort";
 import NotFound from "@/pages/NotFound";
 
 interface ResourceRecord {
@@ -62,10 +64,11 @@ const ResourceList = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [itemToDelete, setItemToDelete] = useState<ResourceRecord | null>(null);
+  const { sort, toggle, ordering } = useTableSort();
 
   const { items, count, isLoading, isError, error } = useCatalogList<ResourceRecord>(
     resource?.endpoint ?? "",
-    { search, page }
+    { search, ordering, page }
   );
 
   const { remove } = useCatalogMutations(resource?.endpoint ?? "", {
@@ -83,6 +86,12 @@ const ResourceList = () => {
   // Busca nova sempre recomeça da primeira página, senão a lista pode vir vazia sem motivo aparente.
   const handleSearch = (value: string) => {
     setSearch(value);
+    setPage(1);
+  };
+
+  // Ordem nova recomeça da primeira página: a página 3 da ordem antiga não diz nada.
+  const handleSort = (field: string) => {
+    toggle(field);
     setPage(1);
   };
 
@@ -127,7 +136,14 @@ const ResourceList = () => {
               <TableHeader>
                 <TableRow>
                   {resource.columns.map((column) => (
-                    <TableHead key={column.header}>{column.header}</TableHead>
+                    <SortableTableHead
+                      key={column.header}
+                      field={column.sortKey}
+                      sort={sort}
+                      onToggle={handleSort}
+                    >
+                      {column.header}
+                    </SortableTableHead>
                   ))}
                   <TableHead className="w-28 text-right">Ações</TableHead>
                 </TableRow>

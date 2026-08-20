@@ -43,6 +43,11 @@ export interface ResourceColumn {
   field: string;
   /** Traduz o valor gravado para o rótulo mostrado, ex.: PROPERTY -> Imóvel. */
   options?: FieldOption[];
+  /**
+   * Campo do `ordering` da API, que em relação difere do `field` mostrado
+   * (`plan_name` sai de `plan__name`). Sem ele a coluna aparece, mas não ordena.
+   */
+  sortKey?: string;
 }
 
 export interface AdminResource {
@@ -81,11 +86,11 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     feminine: true,
     group: "Contas",
     columns: [
-      { header: "Nome", field: "name" },
-      { header: "E-mail", field: "email" },
-      { header: "Telefone", field: "phone" },
-      { header: "Plano", field: "plan_name" },
-      { header: "Ativa", field: "is_active" },
+      { header: "Nome", field: "name", sortKey: "name" },
+      { header: "E-mail", field: "email", sortKey: "email" },
+      { header: "Telefone", field: "phone", sortKey: "phone" },
+      { header: "Plano", field: "plan_name", sortKey: "plan__name" },
+      { header: "Ativa", field: "is_active", sortKey: "is_active" },
     ],
     fields: [
       { name: "name", label: "Nome", type: "text", required: true, maxLength: 100 },
@@ -117,9 +122,9 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     singular: "Plano",
     group: "Contas",
     columns: [
-      { header: "Nome", field: "name" },
-      { header: "Limite de imóveis", field: "property_limit" },
-      { header: "Limite de fotos", field: "photo_limit" },
+      { header: "Nome", field: "name", sortKey: "name" },
+      { header: "Limite de imóveis", field: "property_limit", sortKey: "property_limit" },
+      { header: "Limite de fotos", field: "photo_limit", sortKey: "photo_limit" },
     ],
     fields: [
       { name: "name", label: "Nome", type: "text", required: true, maxLength: 100 },
@@ -147,11 +152,11 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     singular: "Usuário",
     group: "Contas",
     columns: [
-      { header: "Nome", field: "name" },
-      { header: "E-mail", field: "email" },
-      { header: "Imobiliária", field: "agency_name" },
-      { header: "Perfil", field: "type", options: USER_TYPES },
-      { header: "Ativo", field: "is_active" },
+      { header: "Nome", field: "name", sortKey: "name" },
+      { header: "E-mail", field: "email", sortKey: "email" },
+      { header: "Imobiliária", field: "agency_name", sortKey: "agency__name" },
+      { header: "Perfil", field: "type", options: USER_TYPES, sortKey: "type" },
+      { header: "Ativo", field: "is_active", sortKey: "is_active" },
     ],
     fields: [
       { name: "email", label: "E-mail", type: "email", required: true, maxLength: 255 },
@@ -182,7 +187,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     description: "Casa, apartamento, terreno e afins",
     singular: "Tipo de imóvel",
     group: "Catálogos do imóvel",
-    columns: [{ header: "Nome", field: "name" }],
+    columns: [{ header: "Nome", field: "name", sortKey: "name" }],
     fields: [{ name: "name", label: "Nome", type: "text", required: true, maxLength: 100 }],
   },
   {
@@ -194,8 +199,8 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     feminine: true,
     group: "Catálogos do imóvel",
     columns: [
-      { header: "Nome", field: "name" },
-      { header: "Aparece em", field: "type", options: FEATURE_TYPES },
+      { header: "Nome", field: "name", sortKey: "name" },
+      { header: "Aparece em", field: "type", options: FEATURE_TYPES, sortKey: "type" },
     ],
     fields: [
       { name: "name", label: "Nome", type: "text", required: true, maxLength: 120 },
@@ -217,7 +222,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     singular: "Taxa",
     feminine: true,
     group: "Catálogos do imóvel",
-    columns: [{ header: "Nome", field: "name" }],
+    columns: [{ header: "Nome", field: "name", sortKey: "name" }],
     fields: [{ name: "name", label: "Nome", type: "text", required: true, maxLength: 120 }],
   },
   {
@@ -228,9 +233,9 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     singular: "Exportador",
     group: "Exportação",
     columns: [
-      { header: "Nome", field: "name" },
-      { header: "Identificador", field: "slug" },
-      { header: "Ativo", field: "is_active" },
+      { header: "Nome", field: "name", sortKey: "name" },
+      { header: "Identificador", field: "slug", sortKey: "slug" },
+      { header: "Ativo", field: "is_active", sortKey: "is_active" },
     ],
     fields: [
       { name: "name", label: "Nome", type: "text", required: true, maxLength: 120 },
@@ -259,9 +264,9 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     singular: "Plano",
     group: "Exportação",
     columns: [
-      { header: "Portal", field: "exporter_name" },
-      { header: "Plano", field: "name" },
-      { header: "Ordem", field: "position" },
+      { header: "Portal", field: "exporter_name", sortKey: "exporter__name" },
+      { header: "Plano", field: "name", sortKey: "name" },
+      { header: "Ordem", field: "position", sortKey: "position" },
     ],
     fields: [
       {
@@ -290,8 +295,8 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     singular: "País",
     group: "Endereços",
     columns: [
-      { header: "Nome", field: "name" },
-      { header: "Sigla", field: "code" },
+      { header: "Nome", field: "name", sortKey: "name" },
+      { header: "Sigla", field: "code", sortKey: "code" },
     ],
     fields: [
       { name: "name", label: "Nome", type: "text", required: true, maxLength: 80 },
@@ -313,9 +318,9 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     singular: "Estado",
     group: "Endereços",
     columns: [
-      { header: "Nome", field: "name" },
-      { header: "UF", field: "abbreviation" },
-      { header: "País", field: "country_name" },
+      { header: "Nome", field: "name", sortKey: "name" },
+      { header: "UF", field: "abbreviation", sortKey: "abbreviation" },
+      { header: "País", field: "country_name", sortKey: "country__name" },
     ],
     fields: [
       {
@@ -346,9 +351,9 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     feminine: true,
     group: "Endereços",
     columns: [
-      { header: "Nome", field: "name" },
-      { header: "Estado", field: "state_name" },
-      { header: "Código IBGE", field: "ibge_code" },
+      { header: "Nome", field: "name", sortKey: "name" },
+      { header: "Estado", field: "state_name", sortKey: "state__name" },
+      { header: "Código IBGE", field: "ibge_code", sortKey: "ibge_code" },
     ],
     fields: [
       {
@@ -378,9 +383,9 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     singular: "Bairro",
     group: "Endereços",
     columns: [
-      { header: "Nome", field: "name" },
-      { header: "Cidade", field: "city_name" },
-      { header: "UF", field: "state_abbreviation" },
+      { header: "Nome", field: "name", sortKey: "name" },
+      { header: "Cidade", field: "city_name", sortKey: "city__name" },
+      { header: "UF", field: "state_abbreviation", sortKey: "city__state__abbreviation" },
     ],
     fields: [
       {
