@@ -68,6 +68,7 @@ export interface AdminResource {
 
 const USER_TYPES: FieldOption[] = [
   { value: "USER", label: "Usuário" },
+  { value: "BROKER", label: "Corretor" },
   { value: "ADMIN", label: "Administrador" },
 ];
 
