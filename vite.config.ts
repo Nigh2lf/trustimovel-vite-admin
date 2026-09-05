@@ -8,6 +8,8 @@ export default defineConfig({
     host: "::",
     // 8080 é o painel da imobiliária; o admin sobe ao lado dele.
     port: 8081,
+    // Rede de segurança: se o dev server subir atrás de um domínio do Railway, não bloqueia o host.
+    allowedHosts: [".up.railway.app"],
   },
   plugins: [react()],
   resolve: {
