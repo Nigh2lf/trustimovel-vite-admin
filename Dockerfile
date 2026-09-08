@@ -19,9 +19,7 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 # do serviço como build args automaticamente; em outro lugar use --build-arg.
 FROM base AS build
 ARG VITE_API_BASE_URL
-ARG VITE_GOOGLE_CLIENT_ID
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 COPY . .
 RUN npm run build
 

@@ -1,7 +1,7 @@
 export const AUTH_UNAUTHORIZED_EVENT = "auth:unauthorized";
 
 /** Nestes endpoints o 401 é credencial inválida, não sessão expirada. */
-const PUBLIC_AUTH_ENDPOINTS = ["/auth-user/", "/api/users/google-login/"];
+const PUBLIC_AUTH_ENDPOINTS = ["/auth-user/"];
 
 export const isPublicAuthEndpoint = (endpoint: string) =>
   PUBLIC_AUTH_ENDPOINTS.some((path) => endpoint.startsWith(path));
