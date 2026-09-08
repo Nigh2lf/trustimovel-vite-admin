@@ -37,6 +37,17 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
                 </p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
+              {user?.profile_image ? (
+                <img
+                  src={user.profile_image}
+                  alt={user?.name || user?.email || ""}
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium">
+                  {(user?.name || user?.email || "A")[0].toUpperCase()}
+                </div>
+              )}
               <Button variant="ghost" size="icon" onClick={logout} title="Sair">
                 <LogOut className="h-5 w-5" />
               </Button>

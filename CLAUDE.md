@@ -104,7 +104,8 @@ Todos esses endpoints são servidos pelo app `admin_web` da API, que responde **
 ### 1. Acesso — a trava existe em três camadas
 
 ```
-Login.tsx        POST /auth-user/ → se user.type !== "ADMIN", recusa e nem grava a sessão
+Login.tsx        POST /auth-user/ { email, password, remember_me } → se user.type !== "ADMIN", recusa e nem grava a sessão
+                 saveSession() guarda o refresh só com "Confiar neste dispositivo"; o ApiClient o usa no /token-refresh/
 ProtectedRoute   sem access_token ou sem type === "ADMIN" → redireciona para /login
 API (admin_web)  AdminPermissionClass → 401 em qualquer requisição de não-ADMIN
 ```

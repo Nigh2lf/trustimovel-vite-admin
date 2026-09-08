@@ -1,4 +1,10 @@
-import { clearSession, isPublicAuthEndpoint, notifyUnauthorized } from "./auth";
+import {
+  clearSession,
+  getRefreshToken,
+  isPublicAuthEndpoint,
+  notifyUnauthorized,
+  setAccessToken,
+} from "./auth";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -36,6 +42,8 @@ export class ForbiddenError extends Error {
 
 class ApiClient {
   private baseURL: string;
+  /** Renovação em andamento: várias requisições que tomam 401 juntas esperam a mesma. */
+  private refreshing: Promise<string | null> | null = null;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
@@ -73,20 +81,63 @@ class ApiClient {
     return headers;
   }
 
+  /**
+   * Troca o refresh guardado ("Confiar neste dispositivo") por um access novo.
+   * Devolve null quando não há refresh ou ele também venceu: aí a sessão caiu de verdade.
+   */
+  private refreshAccessToken(): Promise<string | null> {
+    const refresh = getRefreshToken();
+    if (!refresh) {
+      return Promise.resolve(null);
+    }
+
+    if (!this.refreshing) {
+      // fetch direto, e não this.request: o access vencido não vai no header nem dispara outro refresh.
+      this.refreshing = fetch(this.buildURL("/token-refresh/"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh }),
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            return null;
+          }
+
+          const { access } = await response.json();
+          setAccessToken(access);
+          return access as string;
+        })
+        .catch(() => null)
+        .finally(() => {
+          this.refreshing = null;
+        });
+    }
+
+    return this.refreshing;
+  }
+
   async request<T = any>(
     endpoint: string,
     options: RequestOptions = {}
   ): Promise<T> {
     const { params, ...fetchOptions } = options;
-    
+
     const url = this.buildURL(endpoint, params);
-    
-    const response = await fetch(url, {
+
+    let response = await fetch(url, {
       ...fetchOptions,
       headers: this.getHeaders(fetchOptions),
     });
 
-    // Token ausente/expirado/inválido: derruba a sessão e manda para o login.
+    // Access vencido com "Confiar neste dispositivo": renova e repete a chamada uma única vez.
+    if (response.status === 401 && !isPublicAuthEndpoint(endpoint) && (await this.refreshAccessToken())) {
+      response = await fetch(url, {
+        ...fetchOptions,
+        headers: this.getHeaders(fetchOptions),
+      });
+    }
+
+    // Token ausente/expirado/inválido, e sem refresh que o renove: derruba a sessão e manda para o login.
     if (response.status === 401 && !isPublicAuthEndpoint(endpoint)) {
       clearSession();
       notifyUnauthorized();
