@@ -12,33 +12,113 @@ interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean>;
 }
 
-/** Erro do DRF pode vir como string, lista ou dicionário por campo; pega a primeira mensagem legível. */
-const extractErrorMessage = (payload: unknown): string | undefined => {
+/** Mensagens por campo, como o DRF devolve: `{ email: ["Informe o e-mail."] }`. */
+export type FieldErrors = Record<string, string[]>;
+
+/** Chaves do DRF que não apontam para um campo do formulário. */
+const GENERAL_ERROR_KEYS = new Set(["non_field_errors", "detail", "error", "message"]);
+
+/** Achata string, lista ou dicionário aninhado numa lista de mensagens legíveis. */
+const flattenMessages = (payload: unknown): string[] => {
   if (typeof payload === "string") {
-    return payload || undefined;
+    return payload ? [payload] : [];
   }
 
   if (Array.isArray(payload)) {
-    return payload.map(extractErrorMessage).find(Boolean);
+    return payload.flatMap(flattenMessages);
   }
 
   if (payload && typeof payload === "object") {
-    return Object.values(payload).map(extractErrorMessage).find(Boolean);
+    return Object.values(payload).flatMap(flattenMessages);
   }
 
-  return undefined;
+  return [];
 };
+
+/**
+ * Lê os dois envelopes da API: o legado (`error` como dicionário por campo, lista ou texto) e
+ * o novo (`errors` como lista de `{ field, message }`). Devolve os erros por campo e os gerais.
+ */
+const collectErrors = (body: Record<string, unknown>): { fields: FieldErrors; general: string[] } => {
+  const fields: FieldErrors = {};
+  const general: string[] = [];
+
+  const assign = (field: string, messages: string[]) => {
+    if (!messages.length) return;
+
+    if (GENERAL_ERROR_KEYS.has(field)) {
+      general.push(...messages);
+      return;
+    }
+
+    fields[field] = [...(fields[field] ?? []), ...messages];
+  };
+
+  if (Array.isArray(body.errors)) {
+    body.errors.forEach((item) => {
+      if (item && typeof item === "object" && "message" in item) {
+        const entry = item as { field?: string; message: string };
+        assign(entry.field || "non_field_errors", [entry.message]);
+      }
+    });
+  }
+
+  const legacy = body.error;
+
+  if (legacy && typeof legacy === "object" && !Array.isArray(legacy)) {
+    Object.entries(legacy).forEach(([field, value]) => assign(field, flattenMessages(value)));
+  } else {
+    general.push(...flattenMessages(legacy));
+  }
+
+  return { fields, general };
+};
+
+/**
+ * Erro da API com as mensagens separadas por campo, para o formulário marcar cada um em vez de
+ * mostrar só a primeira. `message` reúne todas, na ordem em que a API as devolveu.
+ */
+export class ApiError extends Error {
+  status: number;
+  fieldErrors: FieldErrors;
+  messages: string[];
+
+  constructor(status: number, messages: string[], fieldErrors: FieldErrors = {}) {
+    super(messages.join(" · ") || `HTTP ${status}`);
+    this.name = "ApiError";
+    this.status = status;
+    this.messages = messages;
+    this.fieldErrors = fieldErrors;
+  }
+}
 
 /**
  * 403 é permissão, não sessão: o usuário continua logado e só não alcança aquele recurso.
  * Ter um tipo próprio deixa a tela distinguir "sem acesso" de um erro qualquer.
  */
-export class ForbiddenError extends Error {
+export class ForbiddenError extends ApiError {
   constructor(message: string) {
-    super(message);
+    super(403, [message]);
     this.name = "ForbiddenError";
   }
 }
+
+/** Monta o ApiError a partir do corpo de uma resposta de erro. */
+const buildApiError = (status: number, body: unknown): ApiError => {
+  const record = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const { fields, general } = collectErrors(record);
+  const fieldMessages = Object.values(fields).flat();
+
+  // A mensagem genérica do envelope só entra quando não há nada mais específico para mostrar.
+  const fallback = typeof record.message === "string" && record.message ? [record.message] : [];
+  const messages = [...general, ...fieldMessages];
+
+  if (!messages.length) {
+    messages.push(...fallback, ...flattenMessages(record.detail));
+  }
+
+  return new ApiError(status, messages.length ? messages : [`HTTP ${status}`], fields);
+};
 
 class ApiClient {
   private baseURL: string;
@@ -145,22 +225,15 @@ class ApiClient {
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-
-      // Capturar diferentes formatos de erro
-      const errorMessage =
-        extractErrorMessage(error.error) ||
-        extractErrorMessage(error.message) ||
-        extractErrorMessage(error.detail) ||
-        extractErrorMessage(error.non_field_errors) ||
-        `HTTP ${response.status}`;
+      const body = await response.json().catch(() => ({ message: response.statusText }));
+      const error = buildApiError(response.status, body);
 
       // Sem permissão: mantém a sessão de pé e deixa a tela decidir o que mostrar.
       if (response.status === 403) {
-        throw new ForbiddenError(errorMessage);
+        throw new ForbiddenError(error.message);
       }
 
-      throw new Error(errorMessage);
+      throw error;
     }
 
     // 204 (delete, por exemplo) vem sem corpo, e response.json() quebraria nele.
@@ -196,7 +269,7 @@ class ApiClient {
     return this.request<T>(endpoint, {
       ...options,
       method: "PATCH",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     });
   }
 
