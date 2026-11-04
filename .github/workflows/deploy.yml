@@ -18,6 +18,7 @@ jobs:
     env:
       # Entra no bundle em tempo de build: variável do repositório, não do servidor.
       VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+      SITE_URL: https://admin.elo.rodrigolim.com.br
       DIST_DIR: /var/www/trustimovel-vite-admin/dist
 
     steps:
@@ -63,15 +64,10 @@ jobs:
           rsync -az --delete-after -e "ssh -i ~/.ssh/deploy_key" \
             dist/ "$EC2_USER@$EC2_HOST:$DIST_DIR/"
 
-      - name: Verifica os arquivos publicados
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
+      - name: Verifica o site publicado
         run: |
-          # Conferido no disco, e não pelo site, porque o domínio do painel admin ainda pode não existir.
-          ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" "DIST_DIR='$DIST_DIR' bash -s" <<'EOF'
-          set -euo pipefail
-          asset=$(grep -o 'assets/index-[^"]*\.js' "$DIST_DIR/index.html" | head -1)
-          test -n "$asset" && test -f "$DIST_DIR/$asset"
-          echo "Publicado em $DIST_DIR: $asset"
-          EOF
+          # O index publicado precisa apontar para um asset que o servidor realmente serve.
+          asset=$(curl -fsS "$SITE_URL/" | grep -o 'assets/index-[^"]*\.js' | head -1)
+          test -n "$asset"
+          curl -fsS -o /dev/null "$SITE_URL/$asset"
+          echo "Publicado: $asset"
