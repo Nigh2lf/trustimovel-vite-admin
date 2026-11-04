@@ -1,0 +1,77 @@
+name: Deploy do painel administrativo
+
+# Todo push na main gera o bundle e o envia para a EC2; "Run workflow" repete sem commit novo.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-painel-admin
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # Entra no bundle em tempo de build: variável do repositório, não do servidor.
+      VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+      DIST_DIR: /var/www/trustimovel-vite-admin/dist
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Confere a variável de build
+        run: |
+          if [ -z "$VITE_API_BASE_URL" ]; then
+            echo "Defina a variável VITE_API_BASE_URL no repositório (Settings > Variables)."
+            exit 1
+          fi
+
+      - name: Instala as dependências
+        run: npm ci
+
+      - name: Verifica os tipos
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Gera o bundle
+        run: npm run build
+
+      - name: Prepara a chave SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Envia o bundle para a EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          # Arquivos novos entram antes e os antigos saem só no fim, sem janela com asset faltando.
+          rsync -az --delete-after -e "ssh -i ~/.ssh/deploy_key" \
+            dist/ "$EC2_USER@$EC2_HOST:$DIST_DIR/"
+
+      - name: Verifica os arquivos publicados
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          # Conferido no disco, e não pelo site, porque o domínio do painel admin ainda pode não existir.
+          ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" "DIST_DIR='$DIST_DIR' bash -s" <<'EOF'
+          set -euo pipefail
+          asset=$(grep -o 'assets/index-[^"]*\.js' "$DIST_DIR/index.html" | head -1)
+          test -n "$asset" && test -f "$DIST_DIR/$asset"
+          echo "Publicado em $DIST_DIR: $asset"
+          EOF
