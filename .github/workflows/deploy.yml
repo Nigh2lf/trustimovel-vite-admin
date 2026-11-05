@@ -1,6 +1,6 @@
 name: Deploy do painel administrativo
 
-# Todo push na main gera o bundle e o envia para a EC2; "Run workflow" repete sem commit novo.
+# Todo push na main gera o bundle e o publica na EC2; "Run workflow" repete sem commit novo.
 on:
   push:
     branches: [main]
@@ -10,14 +10,21 @@ concurrency:
   group: deploy-painel-admin
   cancel-in-progress: false
 
+# A Action assume a role da AWS por OIDC: sem chave guardada no repositório.
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     env:
       # Entra no bundle em tempo de build: variável do repositório, não do servidor.
       VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+      EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+      DEPLOY_BUCKET: ${{ vars.DEPLOY_BUCKET }}
       SITE_URL: https://admin.elo.rodrigolim.com.br
       DIST_DIR: /var/www/trustimovel-vite-admin/dist
 
@@ -29,12 +36,14 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Confere a variável de build
+      - name: Confere as variáveis
         run: |
-          if [ -z "$VITE_API_BASE_URL" ]; then
-            echo "Defina a variável VITE_API_BASE_URL no repositório (Settings > Variables)."
-            exit 1
-          fi
+          for name in VITE_API_BASE_URL EC2_INSTANCE_ID DEPLOY_BUCKET; do
+            if [ -z "${!name}" ]; then
+              echo "Defina a variável $name no repositório (Settings > Variables)."
+              exit 1
+            fi
+          done
 
       - name: Instala as dependências
         run: npm ci
@@ -45,24 +54,29 @@ jobs:
       - name: Gera o bundle
         run: npm run build
 
-      - name: Prepara a chave SSH
-        env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Envia o bundle para a EC2
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
+      - name: Publica na EC2 pelo Systems Manager
         run: |
-          # Arquivos novos entram antes e os antigos saem só no fim, sem janela com asset faltando.
-          rsync -az --delete-after -e "ssh -i ~/.ssh/deploy_key" \
-            dist/ "$EC2_USER@$EC2_HOST:$DIST_DIR/"
+          # O bundle vai pelo S3 e o servidor o baixa por URL pré-assinada, sem precisar de aws CLI lá.
+          key="deploy/${GITHUB_REPOSITORY#*/}/${GITHUB_SHA}.tar.gz"
+          tar -czf dist.tar.gz -C dist .
+          aws s3 cp --quiet dist.tar.gz "s3://$DEPLOY_BUCKET/$key"
+          dist_url=$(aws s3 presign "s3://$DEPLOY_BUCKET/$key" --expires-in 900)
+
+          # O script do servidor viaja em base64 dentro do comando, para não depender de clone lá.
+          script_b64=$(base64 -w0 scripts/deploy.sh)
+
+          # O SSM executa como root; o sudo -u mantém a pasta do nginx com o dono certo (ubuntu).
+          bash scripts/ssm-run.sh "deploy admin ${GITHUB_SHA::7}" <<EOF
+          set -euo pipefail
+          echo "$script_b64" | base64 -d > /tmp/deploy-painel.sh
+          sudo -u ubuntu -H env DIST_URL='$dist_url' DIST_DIR='$DIST_DIR' bash /tmp/deploy-painel.sh
+          rm -f /tmp/deploy-painel.sh
+          EOF
 
       - name: Verifica o site publicado
         run: |
